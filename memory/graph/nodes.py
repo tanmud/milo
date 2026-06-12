@@ -4,7 +4,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 
@@ -50,7 +50,7 @@ def upsert_node(conn: sqlite3.Connection, node: GraphNode) -> str:
                 last_seen = ?
             WHERE id = ?
             """,
-            (datetime.utcnow().isoformat(), existing["id"]),
+            (datetime.now(timezone.utc).isoformat(), existing["id"]),
         )
         conn.commit()
         return str(existing["id"])

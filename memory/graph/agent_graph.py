@@ -5,7 +5,7 @@ import pickle
 import sqlite3
 import uuid
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 try:
@@ -40,9 +40,9 @@ class AgentGraph:
 
         self.db_path = db_path
         self.conn: sqlite3.Connection = init_db(db_path)
-        self.chroma_client: chromadb.PersistentClient = chromadb.PersistentClient(path=chroma_path)
+        self.chroma_client = chromadb.PersistentClient(path=chroma_path)
         self.collections = get_or_create_collections(self.chroma_client)
-        self.G: nx.DiGraph = nx.DiGraph()
+        self.G = nx.DiGraph()
         self.embedding_model = embedding_model or load_embedding_model()
         self.load()
 
@@ -157,7 +157,7 @@ class AgentGraph:
         return results
 
     def ingest_triples(self, triples: list[dict[str, Any]]) -> None:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         valid_node_types = set(NODE_TYPES)
 
         for triple in triples:

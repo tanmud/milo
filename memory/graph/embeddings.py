@@ -9,7 +9,10 @@ try:
 except ImportError:  # pragma: no cover - optional dependency fallback
     Collection = Any  # type: ignore[assignment]
 
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:  # pragma: no cover - optional dependency fallback
+    SentenceTransformer = Any  # type: ignore[assignment]
 
 
 NODE_TYPES = ["entity", "topic", "emotion", "event", "session"]
@@ -24,14 +27,14 @@ class NodeLike(Protocol):
 
 
 @lru_cache(maxsize=1)
-def load_embedding_model() -> SentenceTransformer:
+def load_embedding_model() -> Any:
     if SentenceTransformer is Any:
         raise ImportError("sentence-transformers is required to load the embedding model")
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def get_or_create_collections(client: Any) -> dict[str, Collection]:
-    collections: dict[str, Collection] = {}
+def get_or_create_collections(client: Any) -> dict[str, Any]:
+    collections: dict[str, Any] = {}
     for node_type in NODE_TYPES:
         collections[node_type] = client.get_or_create_collection(
             name=f"graph_{node_type}",
@@ -47,10 +50,16 @@ def _embedding_text(node: NodeLike) -> str:
     return node.name
 
 
+def _as_list(embedding: Any) -> list[float]:
+    if hasattr(embedding, "tolist"):
+        return list(embedding.tolist())
+    return list(embedding)
+
+
 def add_node_embedding(
-    collections: dict[str, Collection],
+    collections: dict[str, Any],
     node: NodeLike,
-    model: SentenceTransformer,
+    model: Any,
 ) -> None:
     collection = collections[node.type]
     embedding_text = _embedding_text(node)
@@ -61,24 +70,24 @@ def add_node_embedding(
     )[0]
     collection.upsert(
         ids=[node.id],
-        embeddings=[embedding.tolist()],
+        embeddings=[_as_list(embedding)],
         documents=[node.name],
         metadatas=[{"type": node.type, "mention_count": node.mention_count}],
     )
 
 
-def remove_node_embedding(collections: dict[str, Collection], node_id: str, node_type: str) -> None:
+def remove_node_embedding(collections: dict[str, Any], node_id: str, node_type: str) -> None:
     collection = collections.get(node_type)
     if collection is not None:
         collection.delete(ids=[node_id])
 
 
 def semantic_search(
-    collections: dict[str, Collection],
+    collections: dict[str, Any],
     query: str,
     node_types: list[str],
     k: int,
-    model: SentenceTransformer,
+    model: Any,
 ) -> list[str]:
     query_embedding = model.encode(
         [query],
@@ -95,7 +104,7 @@ def semantic_search(
             continue
 
         results = collection.query(
-            query_embeddings=[query_embedding.tolist()],
+            query_embeddings=[_as_list(query_embedding)],
             n_results=k,
             include=["distances"],
         )

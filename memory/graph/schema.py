@@ -3,6 +3,15 @@ from __future__ import annotations
 import sqlite3
 
 
+NODE_TABLE = "nodes"
+EDGE_TABLE = "edges"
+SESSION_TABLE = "sessions"
+AGENT_SUMMARIES_TABLE = "agent_summaries"
+FACTS_TABLE = "facts"
+EPISODES_TABLE = "episodes"
+JOURNAL_METADATA_TABLE = "journal_metadata"
+
+
 def init_db(db_path: str) -> sqlite3.Connection:
     connection = sqlite3.connect(db_path)
     connection.row_factory = sqlite3.Row
@@ -47,6 +56,33 @@ def init_db(db_path: str) -> sqlite3.Connection:
             last_active TEXT,
             current_theme TEXT,
             recent_insight TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS facts (
+            id TEXT PRIMARY KEY,
+            key TEXT NOT NULL UNIQUE,
+            value TEXT NOT NULL,
+            category TEXT DEFAULT 'general',
+            confidence REAL DEFAULT 1.0,
+            last_updated TEXT NOT NULL,
+            source TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS episodes (
+            id TEXT PRIMARY KEY,
+            description TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            agent_id TEXT NOT NULL,
+            tags TEXT DEFAULT '[]',
+            importance REAL DEFAULT 0.5,
+            session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS journal_metadata (
+            agent_id TEXT PRIMARY KEY,
+            last_session_date TEXT,
+            duration_secs INTEGER DEFAULT 0,
+            themes TEXT DEFAULT '[]'
         );
         """
     )
